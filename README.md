@@ -40,7 +40,23 @@ requisicao de negocio**: requisicao sem header e barrada antes, com 400, pelo `S
 
 ## Rodando a demo local
 
-Pre-requisitos: Docker Desktop, JDK 17, Maven.
+Pre-requisitos: Docker Desktop, JDK 17, Maven (serve o que vem dentro da IntelliJ).
+
+### Jeito rapido: `iniciar.ps1`
+
+```powershell
+.\iniciar.ps1 -Zerar    # antes de apresentar: recria os bancos e sobe tudo
+.\iniciar.ps1           # sobe tudo mantendo os dados atuais
+.\iniciar.ps1 -Parar    # derruba os containers
+```
+
+O script abre o Docker Desktop se estiver fechado, sobe Postgres + LocalStack, espera os secrets ficarem
+prontos, encontra o JDK 17 e o Maven sozinho, define `AWS_ENDPOINT_URL` e sobe a aplicacao em
+`http://localhost:8080` com o profile `local`. A aplicacao fica rodando no terminal (Ctrl+C para parar).
+
+Se o Windows bloquear a execucao do script: `powershell -ExecutionPolicy Bypass -File .\iniciar.ps1`.
+
+### Passo a passo manual
 
 ```powershell
 # 1. Infra: Postgres (3 bancos) + LocalStack (Secrets Manager com 3 secrets)
@@ -55,6 +71,10 @@ mvn spring-boot:run -Plocal
 ```
 
 Ou use `demo.http` no IntelliJ / VS Code.
+
+**Rodando pela IntelliJ:** marque o profile Maven `local` (aba Maven > Profiles) e recarregue o projeto, e
+defina a variavel de ambiente `AWS_ENDPOINT_URL=http://localhost:4566` na configuracao de execucao. Sem o
+profile `local` nao ha Tomcat: a aplicacao inicializa e encerra em seguida (exit code 0).
 
 | Tenant | Secret | Banco | Estado inicial |
 |---|---|---|---|
