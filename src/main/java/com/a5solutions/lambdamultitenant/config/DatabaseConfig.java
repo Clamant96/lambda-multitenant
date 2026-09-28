@@ -43,7 +43,9 @@ public class DatabaseConfig {
 
     private static final Logger log = LoggerFactory.getLogger(DatabaseConfig.class);
 
-    private static final String BOOTSTRAP_KEY = "bootstrap";
+    // Chave do H2 no mapa de bancos do TenantRoutingDataSource (os tenants usam o proprio secretId).
+    // Usada so no startup do Spring, quando ainda nao existe requisicao/tenant.
+    private static final String H2_BOOTSTRAP_KEY = "h2-bootstrap";
 
     @Value("${aws.region}")
     private String region;
@@ -57,7 +59,7 @@ public class DatabaseConfig {
     @Primary
     public TenantRoutingDataSource dataSource() {
         return new TenantRoutingDataSource(
-                createBootstrapDataSource(),
+                createH2BootstrapDataSource(),
                 this::createRdsDataSourceFromSecret,
                 this::applySchemaUpdate
         );
@@ -68,19 +70,19 @@ public class DatabaseConfig {
      */
     public static class TenantRoutingDataSource extends AbstractRoutingDataSource {
 
-        private final DataSource bootstrapDataSource;
+        private final DataSource h2BootstrapDataSource;
         private final Function<String, DataSource> dataSourceFactory;
         private final Consumer<DataSource> schemaEnsurer;
         private final Map<String, DataSource> dataSourceCache = new ConcurrentHashMap<>();
 
-        public TenantRoutingDataSource(DataSource bootstrapDataSource,
+        public TenantRoutingDataSource(DataSource h2BootstrapDataSource,
                                        Function<String, DataSource> dataSourceFactory,
                                        Consumer<DataSource> schemaEnsurer) {
-            this.bootstrapDataSource = bootstrapDataSource;
+            this.h2BootstrapDataSource = h2BootstrapDataSource;
             this.dataSourceFactory = dataSourceFactory;
             this.schemaEnsurer = schemaEnsurer;
 
-            setDefaultTargetDataSource(bootstrapDataSource);
+            setDefaultTargetDataSource(h2BootstrapDataSource);
             setLenientFallback(false);
             atualizarTargets();
 
@@ -100,7 +102,7 @@ public class DatabaseConfig {
             // So acontece no startup do Spring (fora de requisicao). Requisicoes sem header
             // sao barradas antes, com 400, pelo SecretHeaderFilter.
             if (secretId == null || secretId.isBlank()) {
-                return BOOTSTRAP_KEY;
+                return H2_BOOTSTRAP_KEY;
             }
 
             registrarTenant(secretId);
@@ -134,7 +136,7 @@ public class DatabaseConfig {
 
         private void atualizarTargets() {
             Map<Object, Object> targets = new HashMap<>(dataSourceCache);
-            targets.put(BOOTSTRAP_KEY, bootstrapDataSource);
+            targets.put(H2_BOOTSTRAP_KEY, h2BootstrapDataSource);
             setTargetDataSources(targets);
             afterPropertiesSet();
         }
@@ -180,9 +182,9 @@ public class DatabaseConfig {
      * Banco em memoria usado apenas para o Spring/JPA subirem antes de existir qualquer tenant.
      * Nunca atende requisicao de negocio.
      */
-    private DataSource createBootstrapDataSource() {
+    private DataSource createH2BootstrapDataSource() {
         HikariConfig config = new HikariConfig();
-        config.setPoolName("bootstrap-h2");
+        config.setPoolName(H2_BOOTSTRAP_KEY);
         config.setJdbcUrl("jdbc:h2:mem:bootstrap;MODE=PostgreSQL;DB_CLOSE_DELAY=-1");
         config.setUsername("sa");
         config.setPassword("");

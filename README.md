@@ -23,6 +23,21 @@ Requisicao ──> SecretHeaderFilter ──> SecretContextHolder (ThreadLocal) 
 | `controller/UsuarioController.java` | CRUD comum, **sem nenhuma linha sobre tenant** |
 | `controller/TenantController.java` | `GET /tenant/info`: mostra em qual banco a requisicao caiu |
 
+### Por que existe um H2 (`h2-bootstrap`)?
+
+O `TenantRoutingDataSource` e um mapa **chave -> banco**. A cada `getConnection()`, o
+`determineCurrentLookupKey()` devolve a chave do banco a usar:
+
+```
+"h2-bootstrap"       -> H2 em memoria        (so no startup)
+"workshop/tenant-a"  -> Postgres tenant_a    (entra no mapa no 1o acesso)
+"workshop/tenant-b"  -> Postgres tenant_b
+```
+
+O Spring/JPA sobe **antes** de chegar qualquer requisicao: nao ha header e, portanto, nao ha tenant. Nesse momento a
+chave devolvida e `h2-bootstrap`, e o H2 vazio existe so para o Spring conseguir inicializar. Ele **nunca atende
+requisicao de negocio**: requisicao sem header e barrada antes, com 400, pelo `SecretHeaderFilter`.
+
 ## Rodando a demo local
 
 Pre-requisitos: Docker Desktop, JDK 17, Maven.
