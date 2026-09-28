@@ -1,0 +1,2 @@
+# Script executado dentro do container Linux (LocalStack): precisa de LF
+*.sh text eol=lf

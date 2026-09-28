@@ -1,0 +1,29 @@
+# Infra local da demo:
+#   postgres   -> 1 servidor, 3 bancos (tenant_a, tenant_b, tenant_c), cada um com usuario proprio
+#   localstack -> Secrets Manager "falso" com 3 secrets, um por tenant
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: multitenant-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      retries: 10
+
+  localstack:
+    image: localstack/localstack:3.8
+    container_name: multitenant-localstack
+    environment:
+      SERVICES: secretsmanager
+      AWS_DEFAULT_REGION: sa-east-1
+    ports:
+      - "4566:4566"
+    volumes:
+      - ./docker/localstack/init-secrets.sh:/etc/localstack/init/ready.d/init-secrets.sh:ro

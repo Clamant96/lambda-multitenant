@@ -1,0 +1,35 @@
+### (IntelliJ HTTP Client / VS Code REST Client) — mesma URL, so o header muda
+
+### Tenant A
+GET http://localhost:8080/tenant/info
+X-Secret-Id: workshop/tenant-a
+
+### Tenant B
+GET http://localhost:8080/tenant/info
+X-Secret-Id: workshop/tenant-b
+
+### Tenant C (tabela criada no 1o acesso)
+GET http://localhost:8080/tenant/info
+X-Secret-Id: workshop/tenant-c
+
+### Usuarios do tenant A
+GET http://localhost:8080/usuario
+X-Secret-Id: workshop/tenant-a
+
+### Usuario 1 do tenant B
+GET http://localhost:8080/usuario/1
+X-Secret-Id: workshop/tenant-b
+
+### Cadastrar no tenant C
+POST http://localhost:8080/usuario
+X-Secret-Id: workshop/tenant-c
+Content-Type: application/json
+
+{ "usuario": "novo.cliente-c", "email": "novo@cliente-c.com", "senha": "123456" }
+
+### Sem header -> 400
+GET http://localhost:8080/usuario
+
+### Secret inexistente -> 400
+GET http://localhost:8080/usuario
+X-Secret-Id: workshop/tenant-x

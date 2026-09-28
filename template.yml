@@ -1,0 +1,29 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Lambda Multitenant - uma unica funcao, N bancos, escolhidos pelo header X-Secret-Id
+Globals:
+  Api:
+    EndpointConfiguration: REGIONAL
+
+Resources:
+  LambdaMultitenantFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: com.a5solutions.lambdamultitenant.StreamLambdaHandler::handleRequest
+      Runtime: java17
+      CodeUri: target/lambda-multitenant-0.0.1-lambda-package.zip
+      MemorySize: 512
+      Timeout: 30
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        # Permissao para ler os secrets dos tenants (nenhum secret fixo na funcao)
+        - Statement:
+            - Effect: Allow
+              Action: secretsmanager:GetSecretValue
+              Resource: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:workshop/tenant-*
+      Events:
+        ProxyResource:
+          Type: Api
+          Properties:
+            Path: /{proxy+}
+            Method: any
